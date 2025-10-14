@@ -472,28 +472,493 @@ function renderCart() {
   countElement.textContent = cart.length;
 }
 
-function removeItem(index) {
-  cart.splice(index, 1);
-  localStorage.setItem('ps_cart', JSON.stringify(cart));
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Podster Shop — Carrito</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=Poppins:wght@300;400;600&display=swap" rel="stylesheet">
+<!-- PayPal SDK (sandbox) -->
+<script src="https://www.paypal.com/sdk/js?client-id=sb&currency=MXN"></script>
+<!-- EmailJS SDK (no se usa en este código) -->
+<script type="text/javascript" src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
+<style>
+/* Variables compartidas */
+:root{
+  --bg-1:#050506;
+  --bg-2:#141416;
+  --glass-bg: rgba(255,255,255,0.03);
+  --glass-border: rgba(255,255,255,0.06);
+  --muted: #9aa0a6;
+  --text: #eaeaea;
+  --accent: #fff;
+  --danger: #e63946;
+  --success: #4caf50;
+  --radius-lg: 18px;
+  --radius-md: 12px;
+  --glass-pad: 12px;
+  --button-reflect: rgba(255,255,255,0.12);
+  --button-reflect-strong: rgba(255,255,255,0.18);
+}
+
+/* Reset y body base */
+*{box-sizing:border-box}
+html,body{height:100%}
+body {
+  margin: 0;
+  padding: 0;
+  font-family: "Poppins", system-ui, -apple-system, Segoe UI, Roboto, "Helvetica Neue", Arial;
+  background: linear-gradient(180deg, var(--bg-1) 0%, var(--bg-2) 80%);
+  color: var(--text);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background-attachment: fixed;
+  overflow-x: hidden;
+  overflow-y: auto;
+}
+
+/* HEADER */
+.header {
+  position: fixed;
+  top: 18px;
+  left: 18px;
+  right: 18px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  z-index: 1400;
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.brand img {
+  width: 40px;
+  height: 40px;
+  border-radius: 8px;
+}
+.brand-text h1 {
+  margin: 0;
+  font-size: 1rem;
+  color: var(--text);
+}
+.brand-text small {
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.right-controls { 
+  display:flex; 
+  align-items:center; 
+  gap:12px; 
+}
+.hamburger{ 
+  display:none; 
+  flex-direction:column; 
+  justify-content:space-between; 
+  width:28px; 
+  height:22px; 
+  background:transparent; 
+  border:none; 
+  padding:0; 
+  cursor:pointer; 
+  z-index:1500; 
+}
+.hamburger span{ 
+  display:block; 
+  height:3px; 
+  width:100%; 
+  background-color:var(--text); 
+  border-radius:2px 
+}
+nav.top{ 
+  display:flex; 
+  gap:14px; 
+  align-items:center 
+}
+nav.top a{ 
+  color:var(--muted); 
+  text-decoration:none; 
+  padding:8px 12px; 
+  border-radius:10px; 
+  font-weight:600 
+}
+nav.top a:hover{ 
+  color:var(--text); 
+  background: rgba(255,255,255,0.02) 
+}
+
+.logo-glass {
+  background: rgba(255, 255, 255, 0.15);
+  backdrop-filter: blur(10px) saturate(180%);
+  -webkit-backdrop-filter: blur(10px) saturate(180%);
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  border-radius: 12px;
+  padding: 6px 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  transition: 0.3s ease;
+  text-decoration: none;
+  color: inherit;
+}
+
+.logo-glass:hover {
+  background: rgba(255, 255, 255, 0.25);
+  transform: scale(1.05);
+}
+
+/* RESPONSIVE para navbar */
+@media (max-width: 720px) {
+  .hamburger {
+    display: flex;
+  }
+  nav.top {
+    display: none;
+    position: absolute;
+    top: 70px;
+    right: 18px;
+    background: rgba(255, 255, 255, 0.85);
+    backdrop-filter: blur(8px);
+    border-radius: 12px;
+    padding: 12px 18px;
+    flex-direction: column;
+    gap: 10px;
+  }
+  nav.top.show {
+    display: flex;
+  }
+  header{ flex-direction:column; align-items:flex-start; gap:10px; top:10px; left:10px; right:10px; }
+}
+
+/* Estilos de carrito */
+h1,h2,h3{margin:0;}
+.container{
+  max-width:900px;
+  margin:120px auto 40px;
+  padding:0 16px;
+  flex:1;
+}
+.glass{
+  background: var(--glass-bg);
+  border-radius: var(--radius-md);
+  border:1px solid var(--glass-border);
+  padding:16px;
+  margin-bottom:20px;
+}
+.cart-item{
+  display:flex; 
+  justify-content:space-between; 
+  align-items:center; 
+  margin-bottom:12px;
+  background: rgba(255,255,255,0.02); 
+  padding:10px; 
+  border-radius:10px;
+}
+.cart-item img{
+  width:72px;
+  height:72px;
+  object-fit:contain;
+  border-radius:8px;
+}
+input,textarea,select{
+  width:100%;
+  padding:8px;
+  margin:6px 0;
+  border-radius:8px;
+  border:1px solid #555;
+  background:#070708;
+  color:#fff;
+}
+button{
+  cursor:pointer; 
+  padding:10px 16px; 
+  border:none; 
+  border-radius:12px;
+  background:linear-gradient(90deg,#222,#111); 
+  color:#fff; 
+  font-weight:700;
+  margin-right:4px;
+}
+button:hover{opacity:0.9;}
+
+/* Contador del carrito en navbar */
+#cart-count {
+  position:absolute; 
+  top:-6px; 
+  right:-6px; 
+  background:#e63946; 
+  color:#fff; 
+  width:22px; 
+  height:22px; 
+  border-radius:50%; 
+  display:grid; 
+  place-items:center; 
+  font-size:12px;
+}
+
+/* PayPal */
+#paypal-btn-wrap {
+  padding: 10px;
+  border-radius: 12px;
+  background: rgba(255,255,255,0.02);
+  border: 1px solid rgba(255,255,255,0.03);
+  display: flex;
+  justify-content: center;
+  margin-top: 12px;
+}
+#paypal-btn-wrap > div {
+  display: flex;
+  justify-content: center;
+}
+
+/* Botón submit */
+#submitBtn {
+  background: linear-gradient(90deg, #4caf50, #45a049);
+  color: white;
+  font-weight: 700;
+  padding: 12px 24px;
+  border-radius: 12px;
+  border: none;
+  cursor: pointer;
+  width: 100%;
+  margin-top: 12px;
+  transition: opacity 0.3s;
+}
+#submitBtn:hover {
+  opacity: 0.9;
+}
+#submitBtn:disabled {
+  background: #666;
+  cursor: not-allowed;
+}
+
+/* Form fields grid for address */
+.form-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+@media (max-width: 720px) {
+  .form-row {
+    grid-template-columns: 1fr;
+  }
+}
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<header class="header">
+  <div class="brand">
+    <a href="index.html" class="logo-glass" title="Volver al inicio">
+      <img src="logo.png" alt="Podster Shop" style="width:40px;height:40px;object-fit:contain;border-radius:8px;margin-right:8px;">
+      <div class="brand-text">
+        <h1>Podster Shop</h1>
+        <small>Calidad 1:1</small>
+      </div>
+    </a>
+  </div>
+
+  <div class="right-controls">
+    <button id="navToggle" class="hamburger" aria-label="Abrir menú">
+      <span></span>
+      <span></span>
+      <span></span>
+    </button>
+
+    <nav class="top">
+      <a href="index.html#catalog">Tienda</a>
+      <a href="index.html#about">Acerca de</a>
+      <a href="index.html#contact">Contacto</a>
+    </nav>
+
+    <button id="cart-fab" style="background:linear-gradient(180deg,#00000000,#00000000); border-radius:10px; border:none; padding:6px; cursor:pointer; display:flex; align-items:center; justify-content:center; position:relative;">
+      <img id="cart-icon" src="cart.png" alt="Carrito" style="width:18px; height:18px;">
+      <div id="cart-count" style="position:absolute; top:-6px; right:-6px; background:#e63946; color:#fff; width:22px; height:22px; border-radius:50%; display:grid; place-items:center; font-size:12px;">0</div>
+    </button>
+  </div>
+</header>
+
+<!-- Contenido -->
+<div class="container">
+  <h1>🛒 Tu Carrito</h1>
+  
+  <div id="cartItemsContainer" class="glass"></div>
+
+  <div class="glass">
+    <h2>💰 Total: <span id="cartTotal">MXN $0.00</span></h2>
+  </div>
+
+  <div class="glass">
+    <button onclick="clearCart()">🧹 Vaciar Carrito</button>
+  </div>
+
+  <div class="glass">
+    <h2>📋 Tus Datos para la Entrega</h2>
+    <form id="checkoutForm">
+      <label>Nombre completo *</label>
+      <input type="text" id="nombre" required>
+
+      <label>Número de celular *</label>
+      <input type="tel" id="telefono" required>
+
+      <label>Correo electrónico *</label>
+      <input type="email" id="correo" required>
+
+      <h3>Dirección de Entrega *</h3>
+      <label>Calle y Número *</label>
+      <input type="text" id="calle_numero" placeholder="Ej: Av. Principal 123" required>
+
+      <div class="form-row">
+        <div>
+          <label>Colonia *</label>
+          <input type="text" id="colonia" placeholder="Ej: Centro" required>
+        </div>
+        <div>
+          <label>Código Postal *</label>
+          <input type="text" id="codigo_postal" placeholder="Ej: 12345" required>
+        </div>
+      </div>
+
+      <div class="form-row">
+        <div>
+          <label>Ciudad *</label>
+          <input type="text" id="ciudad" placeholder="Ej: Ciudad de México" required>
+        </div>
+        <div>
+          <label>Estado *</label>
+          <select id="estado" required>
+            <option value="">Selecciona un estado</option>
+            <option value="Aguascalientes">Aguascalientes</option>
+            <option value="Baja California">Baja California</option>
+            <option value="Baja California Sur">Baja California Sur</option>
+            <option value="Campeche">Campeche</option>
+            <option value="Chiapas">Chiapas</option>
+            <option value="Chihuahua">Chihuahua</option>
+            <option value="Ciudad de México">Ciudad de México</option>
+            <option value="Coahuila">Coahuila</option>
+            <option value="Colima">Colima</option>
+            <option value="Durango">Durango</option>
+            <option value="Estado de México">Estado de México</option>
+            <option value="Guanajuato">Guanajuato</option>
+            <option value="Guerrero">Guerrero</option>
+            <option value="Hidalgo">Hidalgo</option>
+            <option value="Jalisco">Jalisco</option>
+            <option value="Michoacán">Michoacán</option>
+            <option value="Morelos">Morelos</option>
+            <option value="Nayarit">Nayarit</option>
+            <option value="Nuevo León">Nuevo León</option>
+            <option value="Oaxaca">Oaxaca</option>
+            <option value="Puebla">Puebla</option>
+            <option value="Querétaro">Querétaro</option>
+            <option value="Quintana Roo">Quintana Roo</option>
+            <option value="San Luis Potosí">San Luis Potosí</option>
+            <option value="Sinaloa">Sinaloa</option>
+            <option value="Sonora">Sonora</option>
+            <option value="Tabasco">Tabasco</option>
+            <option value="Tamaulipas">Tamaulipas</option>
+            <option value="Tlaxcala">Tlaxcala</option>
+            <option value="Veracruz">Veracruz</option>
+            <option value="Yucatán">Yucatán</option>
+            <option value="Zacatecas">Zacatecas</option>
+          </select>
+        </div>
+      </div>
+
+      <button type="submit" id="submitBtn">📧 Enviar Datos y Proceder a Pago</button>
+
+      <div id="paypal-btn-wrap" class="glass" style="display: none;"></div>
+    </form>
+  </div>
+</div>
+
+<!-- Scripts -->
+<script>
+  // Navbar toggle
+  const navToggle = document.getElementById('navToggle');
+  const navMenu = document.querySelector('nav.top');
+  navToggle.addEventListener('click', () => {
+    navMenu.classList.toggle('show');
+  });
+
+  // Cart button (redirige a home)
+  const cartBtn = document.getElementById('cart-fab');
+  cartBtn.addEventListener('click', function(e) {
+    e.stopImmediatePropagation();
+    window.location.href = 'home.html';
+  });
+
+  function actualizarContador(cantidad) {
+    document.getElementById('cart-count').textContent = cantidad;
+  }
+</script>
+
+<script>
+// === 🛍️ CARRITO SINCRONIZADO === //
+let cart = JSON.parse(localStorage.getItem('ps_cart') || '[]');
+let currentTotal = 0;
+
+function formatMoney(n) {
+  return n.toLocaleString('es-MX', { style: 'currency', currency: 'MXN' });
+}
+
+function renderCart() {
+  const container = document.getElementById('cartItemsContainer');
+  const totalElement = document.getElementById('cartTotal');
+  const countElement = document.getElementById('cart-count');
+
+  container.innerHTML = '';
+  currentTotal = 0;
+
+  if (cart.length === 0) {
+    container.innerHTML = '<p>Tu carrito está vacío 🛒</p>';
+    totalElement.textContent = 'MXN $0.00';
+    countElement.textContent = '0';
+    return;
+  }
+
+  cart.forEach((item, index) => {
+    currentTotal += item.price * item.qty;
+    const div = document.createElement('div');
+    div.className = 'cart-item';
+    div.innerHTML = `
+      <img src="${item.img}" alt="${item.name}">
+      <div style="flex:1; margin-left:10px;">
+        <div><strong>${item.name}</strong></div>
+        <div>${formatMoney(item.price)} x ${item.qty}</div>
+        <div>${formatMoney(item.price * item.qty)}</div>
+      </div>
+      <button onclick="removeItem(${index})">🗑️</button>
+    `;
+    container.appendChild(div);
+  });
+
+  totalElement.textContent = formatMoney(currentTotal);
+  countElement.textContent = cart.length;
+}
+
+JSON.stringify(cart));
   renderCart();
 }
 
 function clearCart() {
-  if (confirm('¿Seguro que quieres vaciar el carrito?')) {
-    cart = [];
-    localStorage.removeItem('ps_cart');
-    renderCart();
-  }
+  if (!confirm("¿Seguro quieres vaciar tu carrito?")) return;
+  cart = [];
+  localStorage.removeItem('ps_cart');
+  renderCart();
 }
 
-// Render inicial
-document.addEventListener('DOMContentLoaded', renderCart);
-
-// 📨 Enviar pedido al Google Apps Script
-function sendOrderToGoogle() {
-  // 🔹 Cargar carrito desde localStorage (por si la variable se perdió)
-  cart = JSON.parse(localStorage.getItem('ps_cart') || '[]');
-
+// === 📨 ENVÍO DE PEDIDO === //
+function sendOrder() {
   if (cart.length === 0) {
     alert("⚠️ Tu carrito está vacío.");
     return;
@@ -501,7 +966,7 @@ function sendOrderToGoogle() {
 
   const form = document.getElementById('checkoutForm');
   if (!form.checkValidity()) {
-    alert("Por favor, completa todos los campos del formulario.");
+    alert("Completa todos los campos requeridos.");
     return;
   }
 
@@ -518,39 +983,56 @@ function sendOrderToGoogle() {
     ciudad: document.getElementById('ciudad').value,
     estado: document.getElementById('estado').value,
     total: currentTotal.toFixed(2),
-    productos: cart.map(i => `${i.name} x ${i.qty} = $${(i.price * i.qty).toFixed(2)}`).join('\n')
+    productos: cart.map(i => `${i.name} x ${i.qty} = $${(i.price*i.qty).toFixed(2)}`)
   };
 
-  console.log("📦 Enviando pedido:", data);
+  // Aquí podrías integrar EmailJS o tu backend para enviar el correo
+  console.log("Datos del pedido:", data);
 
-fetch("https://script.google.com/macros/s/AKfycbwd9WK9mTXevDG31VtlJAbS4-BnVhaDko1oW_I4Inlrsfjgot05E6wTQn44hNxM5-lmtA/exec", {
-  method: "POST",
-  headers: { "Content-Type": "application/json" },
-  body: JSON.stringify(data)
-})
+  alert(`✅ Pedido enviado.\nID de compra: ${idCompra}`);
 
-  .then(() => {
-    alert(`✅ Pedido enviado correctamente.\nTu ID de compra es ${idCompra}`);
-    form.reset();
-    cart = [];
-    localStorage.removeItem('ps_cart');
-    renderCart();
-  })
-  .catch(err => {
-    console.error("❌ Error al enviar:", err);
-    alert("❌ Ocurrió un error al enviar el pedido.");
-  });
+  form.reset();
+  cart = [];
+  localStorage.removeItem('ps_cart');
+  renderCart();
+  document.getElementById('paypal-btn-wrap').style.display = 'block';
+  setupPayPal();
 }
 
-// 🧾 Evento del formulario
-document.getElementById('checkoutForm').addEventListener('submit', e => {
+// === PayPal Button === //
+function setupPayPal() {
+  const paypalWrap = document.getElementById('paypal-btn-wrap');
+  paypalWrap.innerHTML = '';
+  paypal.Buttons({
+    createOrder: function(data, actions) {
+      return actions.order.create({
+        purchase_units: [{
+          amount: { value: currentTotal.toFixed(2) }
+        }]
+      });
+    },
+    onApprove: function(data, actions) {
+      return actions.order.capture().then(function(details) {
+        alert('Pago completado. Gracias por tu compra, ' + details.payer.name.given_name + '!');
+        paypalWrap.style.display = 'none';
+      });
+    },
+    onError: function(err) {
+      console.error(err);
+      alert('Hubo un error en el pago.');
+    }
+  }).render('#paypal-btn-wrap');
+}
+
+// === Event Listener Form === //
+document.getElementById('checkoutForm').addEventListener('submit', function(e) {
   e.preventDefault();
-  sendOrderToGoogle();
+  sendOrder();
 });
 
-
+// Inicializar carrito al cargar
+renderCart();
 </script>
+
 </body>
 </html>
-
-
