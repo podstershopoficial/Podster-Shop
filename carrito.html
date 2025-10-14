@@ -523,25 +523,23 @@ function sendOrderToGoogle() {
 
   console.log("📦 Enviando pedido:", data);
 
-  fetch("https://script.google.com/macros/s/AKfycbyecMNqfV8fUPuB4mdQLkP-X0F1fC8-DYrB-3sh2JJGnD0YWgkkZKQ80CG0Ifb-r3JKZw/exec", {
+fetch("https://script.google.com/macros/s/AKfycbwEgifDSymgUGjvH7kzb-jLasDn7GeGMTEfZK7iGWKzACaKPbIKEe0c23rjEjlTKQG0uQ/exec", {
   method: "POST",
   headers: { "Content-Type": "application/json" },
   body: JSON.stringify(data),
-  mode: "no-cors" // 🔑 evita el error de CORS
+  mode: "no-cors" // evita el error de CORS
+})
+.then(() => {
+  alert(`✅ Pedido enviado correctamente.\nTu ID de compra es ${idCompra}`);
+  form.reset();
+  cart = [];
+  localStorage.removeItem('ps_cart');
+  renderCart();
+})
+.catch(err => {
+  console.error("❌ Error al enviar:", err);
+  alert("❌ Ocurrió un error al enviar el pedido.");
 });
-
-  .then(() => {
-    alert(`✅ Pedido enviado correctamente.\nTu ID de compra es ${idCompra}`);
-    form.reset();
-    cart = [];
-    localStorage.removeItem('ps_cart');
-    renderCart();
-  })
-  .catch(err => {
-    console.error("❌ Error al enviar:", err);
-    alert("❌ Ocurrió un error al enviar el pedido.");
-  });
-}
 
 // 🧾 Evento del formulario
 document.getElementById('checkoutForm').addEventListener('submit', e => {
@@ -553,4 +551,5 @@ document.getElementById('checkoutForm').addEventListener('submit', e => {
 </script>
 </body>
 </html>
+
 
